@@ -70,10 +70,10 @@ module Y2Dev
 
         return nil unless path
 
-        find_file(path) || save_file(path)
+        find_file(path) || fetch_file(path)
       end
 
-      def save_file(path)
+      def fetch_file(path)
         file = Repository::File.new(self, path)
         files << file
 

@@ -14,7 +14,7 @@ module Y2Dev
           @repository = repository
           @path = path
           @branch_name = repository.branch_name
-          @data = retrieve
+          @data = fetch
         end
 
         def content
@@ -45,7 +45,7 @@ module Y2Dev
           Base64.decode64(data.content)
         end
 
-        def retrieve
+        def fetch
           repository.github.client.contents(repository.full_name, path: path, ref: branch_name)
         end
       end
