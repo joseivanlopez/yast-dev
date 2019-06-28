@@ -65,7 +65,7 @@ module Y2Dev
       attr_reader :files
 
       def find_file(path)
-        files.find { |f| f.path == path && f.branch == branch }
+        files.find { |f| f.path == path && f.branch_name == branch_name }
       end
 
       def retrieve_file(glob)

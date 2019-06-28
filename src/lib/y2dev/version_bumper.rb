@@ -1,4 +1,6 @@
 require "y2dev/github/repository"
+require "y2dev/version_bumper/spec_file"
+require "y2dev/version_bumper/changes_file"
 
 module Y2Dev
   class VersionBumper
@@ -15,9 +17,9 @@ module Y2Dev
     end
 
     def bump_version(repository)
-      @repository = repository
-
       reset
+
+      load_repository(repository)
 
       execute_steps(
         :update_repository,
@@ -29,26 +31,27 @@ module Y2Dev
 
     attr_reader :repository
 
+    attr_reader :spec_file
+
+    attr_reader :changes_file
+
+    COMMIT_MESSAGE = "Update version and changelog".freeze
+
     def reset
+      @repository = nil
+      @spec_file = nil
+      @changes_file = nil
       @errors = []
     end
 
-    def execute_steps(*steps)
-      steps.each do |step|
-        break if errors.any?
-        send(step)
-      end
-    end
-
-    def check_spec_file
-      return if spec_file
-
-      @errors << "Spec file cannot be found"
+    def load_repository(repository)
+      @repository = repository
+      @spec_file = SpecFile.new(repository)
+      @changes_file = ChangesFile.new(repository)
+      @errors = spec_file_errors
     end
 
     def update_repository
-      check_spec_file
-
       execute_steps(
         :create_branch,
         :update_spec_file,
@@ -63,42 +66,40 @@ module Y2Dev
       @errors << "Branch cannot be created. Maybe exists yet?"
     end
 
-    def update_spec_file
-      return unless spec_file
-
-      spec_file.content = modify_version_number(spec_file.content)
-    end
-
-    def update_changes_file
-      return unless changes_file
-
-      changes_file.content = add_changelog(changes_file.content)
-    end
-
-    def spec_file
-      repository.file("package/*.spec")
-    end
-
-    def changes_files
-      repository.file("package/*.changes")
-    end
-
-    def modify_version_number(content)
-      # TODO
-    end
-
-    def add_changelog(content)
-      # TODO
-    end
-
-    COMMIT_MESSAGE = "Update version and changelog".freeze
-
     def create_commit
       repository.create_commit(COMMIT_MESSAGE)
     end
 
     def create_pull_request
       repository.create_pull_request("master", branch_name, pull_request_title, pull_request_body)
+    end
+
+    def spec_file_errors
+      [missing_spec_file_error, version_number_error].compact
+    end
+
+    def missing_spec_file_error
+      return nil if spec_file.exist?
+
+      "Spec file cannot be found"
+    end
+
+    def version_number_error
+      return nil if !spec_file.exist? || spec_file.version < version_number
+
+      "Spec file contains a newer version: #{spec_file.version} >= #{version_number}"
+    end
+
+    def update_spec_file
+      return unless spec_file.exist?
+
+      spec_file.update_version(version_number)
+    end
+
+    def update_changes_file
+      return unless changes_file.exist?
+
+      changes_file.add_changelog(version_number, bug_number)
     end
 
     def pull_request_title
@@ -108,6 +109,13 @@ module Y2Dev
     def pull_request_body
       "This PR was automatically created.\n\n" \
       "* #{bug_number}\n"
+    end
+
+    def execute_steps(*steps)
+      steps.each do |step|
+        break if errors.any?
+        send(step)
+      end
     end
   end
 end

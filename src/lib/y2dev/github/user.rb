@@ -13,6 +13,14 @@ module Y2Dev
       def login
         data.login
       end
+
+      def name
+        data.name
+      end
+
+      def email
+        data.email
+      end
     end
   end
 end
