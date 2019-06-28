@@ -27,7 +27,13 @@ module Y2Dev
       ORGANIZATION = "yast".freeze
 
       def bump_version(repository)
-        bumper.bump_version(repository)
+        say("Bumping repository: #{repository.full_name}")
+
+        pr_url = bumper.bump_version(repository)
+
+        say_errors
+
+        pr_url
       end
 
       def bumper
@@ -47,6 +53,19 @@ module Y2Dev
         options.parse
 
         options
+      end
+
+      def say_errors
+        return if bumper.errors.none?
+
+        say(bumper.errors)
+        say("Version cannot be bumped!")
+      end
+
+      def say(message)
+        message = message.join("\n") if message.is_a?(Array)
+
+        puts(message)
       end
     end
   end

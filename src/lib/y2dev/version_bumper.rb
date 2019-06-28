@@ -8,6 +8,8 @@ module Y2Dev
 
     attr_accessor :bug_number
 
+    attr_reader :errors
+
     def initialize
       yield(self)
     end
@@ -15,25 +17,50 @@ module Y2Dev
     def bump_version(repository)
       @repository = repository
 
-      update_repository
-      create_pull_request
+      reset
+
+      execute_steps(
+        :update_repository,
+        :create_pull_request
+      )
     end
 
   private
 
     attr_reader :repository
 
+    def reset
+      @errors = []
+    end
+
+    def execute_steps(*steps)
+      steps.each do |step|
+        break if errors.any?
+        send(step)
+      end
+    end
+
+    def check_spec_file
+      return if spec_file
+
+      @errors << "Spec file cannot be found"
+    end
+
     def update_repository
-      create_branch
+      check_spec_file
 
-      update_spec_file
-      update_changes_file
-
-      create_commit
+      execute_steps(
+        :create_branch,
+        :update_spec_file,
+        :update_changes_file,
+        :create_commit
+      )
     end
 
     def create_branch
-      repository.create_branch(branch_name)
+      return if repository.create_branch(branch_name)
+
+      @errors << "Branch cannot be created. Maybe exists yet?"
     end
 
     def update_spec_file

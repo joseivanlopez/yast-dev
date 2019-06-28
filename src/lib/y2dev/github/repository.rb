@@ -39,6 +39,9 @@ module Y2Dev
         github.client.create_ref(full_name, "heads/#{branch_name}", branch.commit.sha)
 
         switch_branch(branch_name)
+        true
+      rescue Octokit::UnprocessableEntity
+        false
       end
 
       def create_commit(message)
@@ -88,6 +91,8 @@ module Y2Dev
 
       def directory_paths(directory)
         github.client.contents(full_name, ref: branch_name, path: directory).map(&:path)
+      rescue Octokit::NotFound
+        []
       end
 
       def branch
