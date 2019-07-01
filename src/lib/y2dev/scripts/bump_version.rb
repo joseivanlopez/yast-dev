@@ -14,10 +14,15 @@ module Y2Dev
       end
 
       def run
+        parse_options
+
+        say("Loggin into GitHub ...")
         github = Github.login
 
-        require "byebug"; byebug
-        # github.repositories(ORGANIZATION).each { |r| bump_version(r) }
+        say("Fetching repositories ...")
+        github.repositories(ORGANIZATION).each { |r| bump_version(r) }
+
+        say("[end]")
       end
 
     private
@@ -45,14 +50,14 @@ module Y2Dev
       end
 
       def options
-        @options ||= parse_options
+        parse_options unless @options
+
+        @options
       end
 
       def parse_options
-        options = Options.new(args)
-        options.parse
-
-        options
+        @options = Options.new(args)
+        @options.parse
       end
 
       def say_errors

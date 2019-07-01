@@ -5,7 +5,7 @@ module Y2Dev
     class BumpVersion
       class Options
 
-        attr_accessor :directory, :bug, :version, :branch
+        attr_accessor :bug, :version, :branch
 
         def initialize(args)
           @args = args
@@ -16,8 +16,11 @@ module Y2Dev
 
         def parse
           parser.parse!(args)
-        rescue OptionParser::MissingArgument
-          puts parser
+          validate
+
+          self
+        rescue OptionParser::MissingArgument => e
+          exit_with_error(e.message)
         end
 
       private
@@ -35,32 +38,58 @@ module Y2Dev
         end
 
         def banner
-          parser.banner = "Usage: bump_version [options]"
+          parser.banner = "Usage: bump_version OPTIONS"
         end
 
         def bug_option
-          parser.on("--bug BUG", "Bug number to include in the changelog") do |bug|
+          parser.on("--bug BUG", "Bug number to include in the changelog (mandatory)") do |bug|
             self.bug = bug
           end
         end
 
         def version_option
-          parser.on("-v", "--version VERSION", "Version number to bump to") do |version|
+          parser.on("--version VERSION", "Version number to bump to (mandatory)") do |version|
             self.version = version
           end
         end
 
         def branch_option
-          parser.on("--branch BRANCH", "Name of the new branch") do |branch|
+          parser.on("--branch BRANCH", "Name of the new branch (mandatory)") do |branch|
             self.branch = branch
           end
         end
 
         def help
           parser.on_tail("-h", "--help", "Show this message") do
-            puts parser
-            exit
+            exit_with_help
           end
+        end
+
+        def validate
+          mandatory = [:bug, :version, :branch]
+
+          missing = mandatory.select { |s| send(s).nil? }
+
+          return true if missing.none?
+
+          raise OptionParser::MissingArgument.new(missing.map { |m| "--#{m}"}.join(", "))
+        end
+
+        def error_message(error)
+          "#{parser.program_name}: #{error}\n" \
+          "Try '#{parser.program_name} --help' for more information."
+        end
+
+        def exit_with_error(error)
+          puts error_message(error)
+
+          exit
+        end
+
+        def exit_with_help
+          puts parser
+
+          exit
         end
       end
     end
